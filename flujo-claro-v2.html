@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FlujoClaro v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Epilogue:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f4f2ec;
+  --surface: #ffffff;
+  --dark: #0e0f0c;
+  --green: #1a7a4a;
+  --green-light: #e6f4ee;
+  --green-mid: #27ae60;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --gold: #c9920a;
+  --gold-light: #fdf6e3;
+  --wa: #25D366;
+  --text: #111;
+  --muted: #8a8a8a;
+  --border: #e2ddd4;
+  --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body { font-family:'Epilogue',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; max-width:430px; margin:0 auto; overflow-x:hidden; }
+::-webkit-scrollbar { width:0; }
+
+/* SCREENS */
+.screen { display:none; min-height:100vh; flex-direction:column; }
+.screen.active { display:flex; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.screen.active { animation: fadeSlide 0.28s ease; }
+
+/* ══ WHATSAPP LOGIN ══ */
+#screen-login {
+  background: var(--dark);
+  justify-content: flex-end;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+.login-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(26,122,74,0.35) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 80%, rgba(37,211,102,0.15) 0%, transparent 50%);
+}
+.login-grid {
+  position: absolute; inset: 0; opacity: 0.04;
+  background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.login-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 64px 32px 0;
+  z-index: 2;
+}
+.login-logo {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--green), var(--green-mid));
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  box-shadow: 0 12px 40px rgba(26,122,74,0.5);
+}
+.login-logo svg { width: 40px; height: 40px; }
+.login-title { font-family:'Syne',sans-serif; font-size: 48px; font-weight:800; color:#fff; line-height:0.95; }
+.login-title span { color: var(--green-mid); }
+.login-tagline { color:rgba(255,255,255,0.45); font-size:15px; margin-top:12px; font-weight:300; line-height:1.5; }
+
+.login-sheet {
+  background: var(--bg);
+  border-radius: 28px 28px 0 0;
+  padding: 32px 28px 48px;
+  position: relative; z-index: 2;
+}
+.login-sheet-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; margin-bottom:6px; }
+.login-sheet-sub { font-size:14px; color:var(--muted); margin-bottom:28px; font-weight:300; }
+
+.wa-input-wrap {
+  display: flex; gap: 10px; margin-bottom: 16px;
+}
+.country-code {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 14px 14px; font-size:16px;
+  color: var(--text); min-width: 72px; text-align:center;
+  font-family:'Epilogue',sans-serif;
+}
+.wa-input {
+  flex:1; background:var(--surface); border:1.5px solid var(--border);
+  border-radius:12px; padding:14px 16px; font-size:16px;
+  font-family:'Epilogue',sans-serif; color:var(--text); outline:none;
+}
+.wa-input:focus { border-color: var(--wa); box-shadow: 0 0 0 3px rgba(37,211,102,0.12); }
+
+.btn-wa {
+  width:100%; background: var(--wa);
+  color:#fff; border:none; border-radius:14px; padding:17px;
+  font-family:'Syne',sans-serif; font-size:16px; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  gap:10px; transition:all 0.2s; box-shadow:0 4px 20px rgba(37,211,102,0.35);
+}
+.btn-wa:active { transform:scale(0.98); }
+
+/* OTP Screen */
+.otp-dots { display:flex; gap:12px; margin:28px 0; justify-content:center; }
+.otp-dot {
+  width:52px; height:56px; background:var(--surface);
+  border:2px solid var(--border); border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-size:26px; font-weight:800;
+  transition:all 0.2s;
+}
+.otp-dot.filled { border-color:var(--green); background:var(--green-light); color:var(--green); }
+.otp-dot.active { border-color:var(--wa); box-shadow:0 0 0 3px rgba(37,211,102,0.2); }
+
+.otp-numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.otp-key {
+  background:var(--surface); border:none; border-radius:14px; padding:16px;
+  font-family:'Syne',sans-serif; font-size:22px; font-weight:700;
+  cursor:pointer; transition:all 0.15s; color:var(--text);
+}
+.otp-key:active { transform:scale(0.92); background:#e8e8e8; }
+.otp-key.del-key { font-size:18px; color:var(--muted); }
+
+/* ══ BUSINESS SWITCHER ══ */
+#screen-switcher {
+  background: var(--dark); padding: 0; justify-content:flex-start;
+}
+.switcher-header {
+  padding: 52px 24px 24px;
+  background: var(--dark);
+}
+.switcher-header h2 { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:#fff; margin-bottom:4px; }
+.switcher-header p { color:rgba(255,255,255,0.45); font-size:14px; }
+
+.biz-cards-area { padding:16px; flex:1; overflow-y:auto; }
+
+.biz-switch-card {
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius:20px; padding:20px; margin-bottom:12px;
+  cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:16px;
+}
+.biz-switch-card:hover, .biz-switch-card.selected {
+  background: rgba(26,122,74,0.2); border-color: var(--green-mid);
+}
+.biz-switch-avatar {
+  width:52px; height:52px; border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; flex-shrink:0;
+}
+.biz-switch-info { flex:1; }
+.biz-switch-name { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:#fff; }
+.biz-switch-type { font-size:12px; color:rgba(255,255,255,0.45); margin-top:2px; }
+.biz-switch-badge {
+  font-size:11px; font-weight:700; padding:5px 12px;
+  border-radius:20px; background:rgba(39,174,96,0.2); color:var(--green-mid);
+}
+
+.btn-add-biz {
+  width:100%; background:rgba(255,255,255,0.07); border:1.5px dashed rgba(255,255,255,0.2);
+  border-radius:20px; padding:18px; color:rgba(255,255,255,0.5);
+  font-family:'Syne',sans-serif; font-size:15px; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+  transition:all 0.2s; margin-bottom:12px;
+}
+.btn-add-biz:hover { border-color:var(--green-mid); color:var(--green-mid); }
+
+.switcher-enter-btn {
+  margin:16px; background:linear-gradient(135deg,var(--green),#0d5c36);
+  color:#fff; border:none; border-radius:16px; padding:18px;
+  font-family:'Syne',sans-serif; font-size:16px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; box-shadow:0 6px 24px rgba(26,122,74,0.4);
+}
+.switcher-enter-btn:active { transform:scale(0.98); }
+
+/* ══ MAIN APP ══ */
+/* Header */
+.app-header {
+  background:var(--dark); padding:48px 24px 28px; position:relative; overflow:hidden;
+}
+.app-header::after {
+  content:''; position:absolute; bottom:-1px; left:0; right:0;
+  height:24px; background:var(--bg); border-radius:24px 24px 0 0;
+}
+.header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.header-biz-name {
+  font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:#fff;
+  display:flex; align-items:center; gap:8px;
+}
+.switch-biz-btn {
+  background:rgba(255,255,255,0.1); border:none; border-radius:10px;
+  padding:7px 12px; color:rgba(255,255,255,0.7); font-size:12px;
+  font-family:'Epilogue',sans-serif; cursor:pointer; transition:all 0.2s;
+  display:flex; align-items:center; gap:6px;
+}
+.user-avatar {
+  width:36px; height:36px; border-radius:50%;
+  background:linear-gradient(135deg,var(--green),var(--green-mid));
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:#fff;
+  cursor:pointer;
+}
+
+.balance-card {
+  background:linear-gradient(135deg,#1a5c35 0%,#0a3320 100%);
+  border-radius:22px; padding:22px; position:relative; overflow:hidden;
+}
+.balance-card::before {
+  content:''; position:absolute; width:220px; height:220px;
+  border-radius:50%; background:rgba(255,255,255,0.04);
+  top:-80px; right:-50px;
+}
+.balance-label { font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+.balance-net { font-family:'Syne',sans-serif; font-size:40px; font-weight:800; color:#fff; margin-bottom:18px; }
+.balance-net span { font-size:22px; opacity:0.6; }
+.balance-row { display:flex; gap:12px; }
+.balance-pill {
+  flex:1; background:rgba(255,255,255,0.1); border-radius:12px; padding:12px;
+}
+.balance-pill-label { font-size:10px; color:rgba(255,255,255,0.5); margin-bottom:3px; }
+.balance-pill-val { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:#fff; }
+.balance-pill-val.neg { color:#ff8a80; }
+
+/* Content */
+.content { padding:20px 20px 110px; }
+.sec-head {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:12px; margin-top:20px;
+}
+.sec-head h3 { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; }
+.sec-link { font-size:13px; color:var(--green); background:none; border:none; cursor:pointer; font-family:'Epilogue',sans-serif; }
+
+/* Health */
+.health-strip {
+  background:var(--dark); border-radius:18px; padding:18px;
+  display:flex; align-items:center; gap:16px; margin-bottom:4px;
+}
+.health-ring { position:relative; width:56px; height:56px; flex-shrink:0; }
+.health-ring svg { width:56px; height:56px; transform:rotate(-90deg); }
+.health-ring-val {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:var(--green-mid);
+}
+.health-label { font-size:10px; color:rgba(255,255,255,0.45); letter-spacing:1px; text-transform:uppercase; }
+.health-status { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:#fff; margin:3px 0; }
+.health-hint { font-size:12px; color:rgba(255,255,255,0.4); }
+
+/* Quick actions */
+.qa-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.qa-btn {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:18px;
+  padding:16px; text-align:left; cursor:pointer; transition:all 0.18s; font-family:'Epilogue',sans-serif;
+}
+.qa-btn:active { transform:scale(0.96); }
+.qa-icon { width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:10px; }
+.qa-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; margin-bottom:2px; }
+.qa-sub { font-size:11px; color:var(--muted); }
+.qa-btn.inc .qa-icon { background:var(--green-light); }
+.qa-btn.exp .qa-icon { background:var(--red-light); }
+.qa-btn.rep .qa-icon { background:var(--gold-light); }
+.qa-btn.cli .qa-icon { background:#e8f0ff; }
+
+/* Week chart */
+.chart-card { background:var(--surface); border-radius:18px; padding:18px; }
+.chart-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.chart-meta-title { font-size:14px; font-weight:500; }
+.chart-legend { display:flex; gap:12px; font-size:11px; color:var(--muted); align-items:center; }
+.chart-legend span { display:flex; align-items:center; gap:4px; }
+.chart-legend-dot { width:8px; height:8px; border-radius:50%; }
+.chart-bars-wrap { display:flex; align-items:flex-end; gap:5px; height:80px; }
+.chart-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
+.cb-inner { display:flex; gap:2px; align-items:flex-end; }
+.cb { border-radius:5px 5px 0 0; width:14px; }
+.cb.inc { background:var(--green); }
+.cb.exp { background:#f0b8b4; }
+.chart-day-label { font-size:9px; color:var(--muted); }
+
+/* Tx list */
+.tx-card {
+  background:var(--surface); border-radius:16px; padding:14px 16px;
+  display:flex; align-items:center; gap:14px; margin-bottom:8px;
+}
+.tx-ic { width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.tx-ic.inc { background:var(--green-light); }
+.tx-ic.exp { background:var(--red-light); }
+.tx-name { font-weight:500; font-size:15px; }
+.tx-date { font-size:12px; color:var(--muted); margin-top:2px; }
+.tx-amt { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; }
+.tx-amt.inc { color:var(--green); }
+.tx-amt.exp { color:var(--red); }
+
+/* ══ BOTTOM NAV ══ */
+.bottom-nav {
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:430px;
+  background:rgba(255,255,255,0.95); backdrop-filter:blur(12px);
+  border-top:1px solid var(--border); display:flex; padding:8px 0 22px; z-index:100;
+}
+.nav-btn {
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:8px 0; cursor:pointer; border:none; background:none;
+  color:var(--muted); font-family:'Epilogue',sans-serif; font-size:10px;
+  letter-spacing:0.3px; transition:color 0.2s;
+}
+.nav-btn.active { color:var(--green); }
+.nav-btn svg { width:22px; height:22px; }
+
+/* ══ ADD SCREEN ══ */
+#screen-add { padding:52px 22px 110px; }
+.back-btn { background:none; border:none; font-size:22px; cursor:pointer; margin-bottom:16px; color:var(--text); }
+.pg-title { font-family:'Syne',sans-serif; font-size:30px; font-weight:800; }
+.pg-sub { font-size:14px; color:var(--muted); margin-top:4px; margin-bottom:22px; font-weight:300; }
+
+.type-row { display:flex; background:#e8e4dc; border-radius:14px; padding:4px; margin-bottom:22px; }
+.type-pill { flex:1; padding:11px; text-align:center; border-radius:10px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; cursor:pointer; border:none; background:none; color:var(--muted); transition:all 0.2s; }
+.type-pill.sel-inc { background:var(--green); color:#fff; box-shadow:0 2px 12px rgba(26,122,74,0.3); }
+.type-pill.sel-exp { background:var(--red); color:#fff; box-shadow:0 2px 12px rgba(192,57,43,0.3); }
+
+.amount-box { background:var(--surface); border-radius:20px; padding:26px; text-align:center; margin-bottom:20px; }
+.amount-lbl { font-size:12px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+.amount-val { font-family:'Syne',sans-serif; font-size:50px; font-weight:800; line-height:1; }
+.amount-val.c-inc { color:var(--green); }
+.amount-val.c-exp { color:var(--red); }
+
+.cat-section { margin-bottom:16px; }
+.cat-section label { font-size:12px; font-weight:600; letter-spacing:0.5px; color:#666; display:block; margin-bottom:8px; }
+.cat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.cat-btn {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:11px 6px; background:var(--surface); border:1.5px solid var(--border);
+  border-radius:14px; cursor:pointer; font-size:10px; color:var(--muted);
+  font-family:'Epilogue',sans-serif; transition:all 0.2s;
+}
+.cat-btn.sel { border-color:var(--green); background:var(--green-light); color:var(--green); font-weight:600; }
+.cat-btn span:first-child { font-size:22px; }
+
+.note-input {
+  width:100%; background:var(--surface); border:1.5px solid var(--border);
+  border-radius:12px; padding:14px 16px; font-size:15px;
+  font-family:'Epilogue',sans-serif; color:var(--text); outline:none; margin-bottom:14px;
+}
+.note-input:focus { border-color:var(--green); }
+
+.numpad-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.num-k {
+  background:var(--surface); border:none; border-radius:14px; padding:17px;
+  font-family:'Syne',sans-serif; font-size:22px; font-weight:700; cursor:pointer;
+  transition:all 0.12s; color:var(--text);
+}
+.num-k:active { transform:scale(0.92); background:#e8e5df; }
+.num-k.sp { font-size:15px; color:var(--muted); }
+
+.btn-save { width:100%; background:linear-gradient(135deg,var(--green),#0d5c36); color:#fff; border:none; border-radius:14px; padding:18px; font-family:'Syne',sans-serif; font-size:16px; font-weight:700; cursor:pointer; box-shadow:0 4px 20px rgba(26,122,74,0.35); transition:all 0.2s; }
+.btn-save:active { transform:scale(0.98); }
+
+/* ══ REPORTS SCREEN ══ */
+#screen-reports { padding:52px 22px 110px; }
+.period-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:20px; }
+.period-pill { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:8px 18px; font-size:13px; cursor:pointer; white-space:nowrap; transition:all 0.2s; font-family:'Epilogue',sans-serif; }
+.period-pill.act { background:var(--dark); color:#fff; border-color:var(--dark); }
+
+.rep-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px; }
+.rep-card { background:var(--surface); border-radius:14px; padding:14px 10px; text-align:center; }
+.rep-card-lbl { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+.rep-card-val { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; }
+.rep-card-val.g { color:var(--green); }
+.rep-card-val.r { color:var(--red); }
+.rep-card-val.o { color:var(--gold); }
+
+.breakdown-card { background:var(--surface); border-radius:16px; padding:18px; margin-bottom:14px; }
+.bkd-item { margin-bottom:12px; }
+.bkd-item:last-child { margin-bottom:0; }
+.bkd-row { display:flex; justify-content:space-between; margin-bottom:5px; }
+.bkd-name { font-size:14px; font-weight:500; }
+.bkd-val { font-size:13px; color:var(--muted); }
+.bar-track { height:8px; background:#f0ede8; border-radius:4px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:4px; transition:width 0.8s ease; }
+.bar-fill.g { background:var(--green); }
+.bar-fill.r { background:var(--red); }
+.bar-fill.o { background:var(--gold); }
+.bar-fill.b { background:#4a90d9; }
+
+.pdf-btn {
+  width:100%; background:var(--dark); color:#fff; border:none; border-radius:14px;
+  padding:17px; font-family:'Syne',sans-serif; font-size:15px; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+  transition:all 0.2s; margin-top:20px;
+}
+.pdf-btn:active { transform:scale(0.98); }
+.pdf-badge { background:rgba(255,255,255,0.15); border-radius:6px; padding:3px 8px; font-size:11px; }
+
+/* ══ CLIENTS SCREEN ══ */
+#screen-clients { padding:52px 22px 110px; }
+.client-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+.add-client-btn {
+  background:var(--dark); color:#fff; border:none; border-radius:12px;
+  padding:10px 16px; font-family:'Syne',sans-serif; font-weight:700; font-size:13px; cursor:pointer;
+}
+
+.revenue-banner {
+  background:linear-gradient(135deg,var(--green),#0a3320);
+  border-radius:18px; padding:20px; margin-bottom:20px;
+}
+.rev-label { font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+.rev-amount { font-family:'Syne',sans-serif; font-size:36px; font-weight:800; color:#fff; }
+.rev-sub { font-size:12px; color:rgba(255,255,255,0.5); margin-top:4px; }
+.rev-row { display:flex; gap:12px; margin-top:16px; }
+.rev-pill { flex:1; background:rgba(255,255,255,0.1); border-radius:10px; padding:10px 12px; }
+.rev-pill-lbl { font-size:10px; color:rgba(255,255,255,0.5); }
+.rev-pill-val { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:#fff; margin-top:2px; }
+
+.client-card {
+  background:var(--surface); border-radius:18px; padding:16px;
+  display:flex; align-items:center; gap:14px; margin-bottom:10px; cursor:pointer;
+}
+.client-av {
+  width:50px; height:50px; border-radius:16px;
+  background:linear-gradient(135deg,var(--green),var(--green-mid));
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:#fff; flex-shrink:0;
+}
+.client-name { font-weight:600; font-size:15px; }
+.client-type { font-size:12px; color:var(--muted); margin-top:2px; }
+.client-fee { font-size:12px; font-weight:700; padding:5px 12px; border-radius:20px; background:var(--green-light); color:var(--green); }
+
+/* ══ MODALS ══ */
+.modal-ov { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; display:none; align-items:flex-end; backdrop-filter:blur(2px); }
+.modal-ov.open { display:flex; }
+.modal-sheet { background:var(--bg); border-radius:26px 26px 0 0; padding:24px 24px 40px; width:100%; }
+@keyframes sheetUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-ov.open .modal-sheet { animation: sheetUp 0.3s ease; }
+.modal-handle { width:40px; height:4px; background:#ddd; border-radius:2px; margin:0 auto 20px; }
+.modal-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; margin-bottom:20px; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:12px; font-weight:700; letter-spacing:0.5px; color:#666; margin-bottom:7px; text-transform:uppercase; }
+.form-group input, .form-group select {
+  width:100%; background:var(--surface); border:1.5px solid var(--border);
+  border-radius:12px; padding:14px 16px; font-family:'Epilogue',sans-serif;
+  font-size:15px; color:var(--text); outline:none; appearance:none;
+}
+.form-group input:focus, .form-group select:focus { border-color:var(--green); }
+.btn-primary { width:100%; background:linear-gradient(135deg,var(--green),#0d5c36); color:#fff; border:none; border-radius:14px; padding:17px; font-family:'Syne',sans-serif; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px; }
+.btn-cancel { width:100%; background:none; border:none; color:var(--muted); font-size:14px; padding:12px; cursor:pointer; margin-top:6px; font-family:'Epilogue',sans-serif; }
+
+/* TOAST */
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--dark); color:#fff; padding:14px 24px; border-radius:12px; font-size:14px; opacity:0; z-index:400; white-space:nowrap; pointer-events:none; transition:all 0.3s; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* PDF loading spinner */
+.pdf-loading { display:none; width:20px; height:20px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* Empty state */
+.empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
+.empty-state .ei { font-size:48px; margin-bottom:10px; }
+.empty-state p { font-size:15px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════════
+     MODAL: ADD CLIENT
+════════════════════════════════════════════ -->
+<div class="modal-ov" id="modal-client">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nuevo Cliente</div>
+    <div class="form-group"><label>Nombre del negocio</label><input id="m-cname" type="text" placeholder="Ej: Tienda Don Pedro"></div>
+    <div class="form-group"><label>Tipo de negocio</label>
+      <select id="m-ctype">
+        <option>🛒 Tienda / Abarrotes</option><option>🍽️ Restaurante / Comida</option>
+        <option>🔧 Taller / Servicio</option><option>💇 Salón de belleza</option>
+        <option>👕 Ropa / Moda</option><option>💊 Farmacia</option><option>📦 Otro</option>
+      </select>
+    </div>
+    <div class="form-group"><label>WhatsApp</label><input id="m-cphone" type="tel" placeholder="+52 555 000 0000"></div>
+    <div class="form-group"><label>Plan mensual ($)</label><input id="m-cfee" type="number" placeholder="40" value="40"></div>
+    <button class="btn-primary" onclick="saveClient()">✓ Agregar cliente</button>
+    <button class="btn-cancel" onclick="closeModal('modal-client')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     MODAL: ADD BUSINESS
+════════════════════════════════════════════ -->
+<div class="modal-ov" id="modal-biz">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Nuevo Negocio</div>
+    <div class="form-group"><label>Nombre</label><input id="m-bname" type="text" placeholder="Ej: Ferretería El Clavo"></div>
+    <div class="form-group"><label>Tipo</label>
+      <select id="m-btype">
+        <option>🛒 Tienda</option><option>🍽️ Restaurante</option><option>🔧 Taller</option>
+        <option>💇 Salón</option><option>👕 Ropa</option><option>📦 Otro</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Moneda</label>
+      <select id="m-bcurr">
+        <option value="$">$ Peso / Dólar</option><option value="COP">COP Colombia</option>
+        <option value="S/.">S/. Perú</option><option value="Bs">Bs Venezuela</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="addBusiness()">✓ Crear negocio</button>
+    <button class="btn-cancel" onclick="closeModal('modal-biz')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: WHATSAPP LOGIN
+════════════════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="login-bg"></div>
+  <div class="login-grid"></div>
+  <div class="login-top">
+    <div class="login-logo">
+      <svg viewBox="0 0 40 40" fill="none"><path d="M6 32 L14 20 L22 26 L34 10" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="34" cy="10" r="4" fill="white"/></svg>
+    </div>
+    <div class="login-title">FLUJO<span>CLARO</span></div>
+    <div class="login-tagline">Controla las finanzas de tu negocio.<br>Sin contador. Sin complicaciones.</div>
+  </div>
+
+  <!-- Step 1: Phone -->
+  <div class="login-sheet" id="login-step-phone">
+    <div class="login-sheet-title">Inicia con WhatsApp</div>
+    <div class="login-sheet-sub">Recibirás un código de verificación vía WhatsApp</div>
+    <div class="wa-input-wrap">
+      <div class="country-code">🇲🇽 +52</div>
+      <input class="wa-input" id="phone-input" type="tel" placeholder="55 1234 5678" maxlength="14">
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;">Al continuar aceptas los términos de servicio</div>
+    <button class="btn-wa" onclick="sendOTP()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M5.077 19.93l.857-3.126A8.918 8.918 0 0 1 3.06 12C3.06 7.05 7.055 3.054 12 3.054c4.948 0 8.943 3.996 8.943 8.946 0 4.951-3.995 8.946-8.943 8.946a8.93 8.93 0 0 1-4.52-1.23L5.077 19.93zM12 1C6.477 1 2 5.478 2 12c0 1.993.52 3.866 1.43 5.492L2 22l4.62-1.41A10.954 10.954 0 0 0 12 23c6.523 0 11-4.477 11-11S18.523 1 12 1z" fill-rule="evenodd" clip-rule="evenodd"/></svg>
+      Enviar código por WhatsApp
+    </button>
+  </div>
+
+  <!-- Step 2: OTP -->
+  <div class="login-sheet" id="login-step-otp" style="display:none;">
+    <div class="login-sheet-title">Ingresa el código</div>
+    <div class="login-sheet-sub">Enviamos un código de 4 dígitos a tu WhatsApp</div>
+    <div class="otp-dots" id="otp-display">
+      <div class="otp-dot" id="d0"></div>
+      <div class="otp-dot" id="d1"></div>
+      <div class="otp-dot" id="d2"></div>
+      <div class="otp-dot" id="d3"></div>
+    </div>
+    <div class="otp-numpad">
+      <button class="otp-key" onclick="otpPress('1')">1</button>
+      <button class="otp-key" onclick="otpPress('2')">2</button>
+      <button class="otp-key" onclick="otpPress('3')">3</button>
+      <button class="otp-key" onclick="otpPress('4')">4</button>
+      <button class="otp-key" onclick="otpPress('5')">5</button>
+      <button class="otp-key" onclick="otpPress('6')">6</button>
+      <button class="otp-key" onclick="otpPress('7')">7</button>
+      <button class="otp-key" onclick="otpPress('8')">8</button>
+      <button class="otp-key" onclick="otpPress('9')">9</button>
+      <button class="otp-key del-key" onclick="otpPress('del')">✕</button>
+      <button class="otp-key" onclick="otpPress('0')">0</button>
+      <button class="otp-key del-key" onclick="otpPress('del')">⌫</button>
+    </div>
+    <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--muted);">
+      ¿No recibiste el código? <span style="color:var(--green);cursor:pointer;font-weight:600;" onclick="resendOTP()">Reenviar</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: BUSINESS SWITCHER
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-switcher">
+  <div class="switcher-header">
+    <h2>Mis Negocios</h2>
+    <p id="switcher-user-label">Hola, cargando...</p>
+  </div>
+  <div class="biz-cards-area" id="biz-cards">
+    <!-- Generated by JS -->
+  </div>
+  <button class="btn-add-biz" style="margin:0 16px;" onclick="openModal('modal-biz')">+ Agregar otro negocio</button>
+  <button class="switcher-enter-btn" onclick="enterSelectedBiz()">Entrar al negocio →</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: DASHBOARD
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-biz-name" id="h-biz-name">—</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="switch-biz-btn" onclick="goTo('screen-switcher')">⇄ Cambiar</button>
+        <div class="user-avatar" id="h-avatar">U</div>
+      </div>
+    </div>
+    <div class="balance-card">
+      <div class="balance-label">SALDO DEL MES</div>
+      <div class="balance-net" id="b-net"><span>$</span>0</div>
+      <div class="balance-row">
+        <div class="balance-pill"><div class="balance-pill-label">📈 Ingresos</div><div class="balance-pill-val" id="b-inc">$0</div></div>
+        <div class="balance-pill"><div class="balance-pill-label">📉 Gastos</div><div class="balance-pill-val neg" id="b-exp">$0</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <!-- Health -->
+    <div class="health-strip">
+      <div class="health-ring">
+        <svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/><circle id="health-arc" cx="28" cy="28" r="22" fill="none" stroke="#27ae60" stroke-width="5" stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="40"/></svg>
+        <div class="health-ring-val" id="h-score">72</div>
+      </div>
+      <div class="health-info">
+        <div class="health-label">Salud financiera</div>
+        <div class="health-status" id="h-status">Negocio estable ✓</div>
+        <div class="health-hint" id="h-hint">Tus gastos son menores a tus ingresos</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="sec-head" style="margin-top:20px;"><h3>Acción rápida</h3></div>
+    <div class="qa-grid">
+      <button class="qa-btn inc" onclick="goToAdd('income')"><div class="qa-icon">💰</div><div class="qa-title">Venta</div><div class="qa-sub">Registrar ingreso</div></button>
+      <button class="qa-btn exp" onclick="goToAdd('expense')"><div class="qa-icon">🧾</div><div class="qa-title">Gasto</div><div class="qa-sub">Registrar egreso</div></button>
+      <button class="qa-btn rep" onclick="navTo('screen-reports',2)"><div class="qa-icon">📊</div><div class="qa-title">Reporte</div><div class="qa-sub">Ver análisis</div></button>
+      <button class="qa-btn cli" onclick="navTo('screen-clients',3)"><div class="qa-icon">👥</div><div class="qa-title">Clientes</div><div class="qa-sub">Mis cuentas</div></button>
+    </div>
+
+    <!-- Week Chart -->
+    <div class="sec-head"><h3>Esta semana</h3></div>
+    <div class="chart-card">
+      <div class="chart-meta">
+        <div class="chart-meta-title">Ingresos vs Gastos</div>
+        <div class="chart-legend">
+          <span><div class="chart-legend-dot" style="background:var(--green)"></div>Ingresos</span>
+          <span><div class="chart-legend-dot" style="background:#f0b8b4"></div>Gastos</span>
+        </div>
+      </div>
+      <div class="chart-bars-wrap" id="week-chart"></div>
+      <div id="week-labels" style="display:flex;gap:5px;margin-top:6px;"></div>
+    </div>
+
+    <!-- Recent Tx -->
+    <div class="sec-head"><h3>Recientes</h3><button class="sec-link" onclick="navTo('screen-reports',2)">Ver todos</button></div>
+    <div id="tx-list"></div>
+  </div>
+
+  <nav class="bottom-nav" id="nav-dash">
+    <button class="nav-btn active" onclick="navTo('screen-dashboard',0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</button>
+    <button class="nav-btn" onclick="goToAdd('income');navTo('screen-add',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Registrar</button>
+    <button class="nav-btn" onclick="navTo('screen-reports',2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>Reportes</button>
+    <button class="nav-btn" onclick="navTo('screen-clients',3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes</button>
+  </nav>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: ADD TRANSACTION
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-add">
+  <button class="back-btn" onclick="navTo('screen-dashboard',0)">←</button>
+  <div class="pg-title">Registrar</div>
+  <div class="pg-sub">¿Qué fue este movimiento?</div>
+
+  <div class="type-row">
+    <button class="type-pill sel-inc" id="tab-inc" onclick="setTxType('income')">💰 Ingreso</button>
+    <button class="type-pill" id="tab-exp" onclick="setTxType('expense')">🧾 Gasto</button>
+  </div>
+
+  <div class="amount-box">
+    <div class="amount-lbl">MONTO</div>
+    <div class="amount-val c-inc" id="amt-display">$0</div>
+  </div>
+
+  <div class="cat-section">
+    <label>Categoría</label>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+
+  <input class="note-input" id="tx-note" type="text" placeholder="Nota (opcional) — Ej: Venta de ropa">
+
+  <div class="numpad-grid">
+    <button class="num-k" onclick="numP('7')">7</button><button class="num-k" onclick="numP('8')">8</button><button class="num-k" onclick="numP('9')">9</button>
+    <button class="num-k" onclick="numP('4')">4</button><button class="num-k" onclick="numP('5')">5</button><button class="num-k" onclick="numP('6')">6</button>
+    <button class="num-k" onclick="numP('1')">1</button><button class="num-k" onclick="numP('2')">2</button><button class="num-k" onclick="numP('3')">3</button>
+    <button class="num-k sp" onclick="numP('.')">.</button><button class="num-k" onclick="numP('0')">0</button><button class="num-k sp" onclick="numP('del')">⌫</button>
+  </div>
+  <button class="btn-save" onclick="saveTx()">✓ Guardar movimiento</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: REPORTS
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-reports">
+  <div class="pg-title">Reportes</div>
+  <div class="pg-sub">Análisis completo de tu negocio</div>
+
+  <div class="period-row">
+    <button class="period-pill act" onclick="setPeriod(this,'week')">Esta semana</button>
+    <button class="period-pill" onclick="setPeriod(this,'month')">Este mes</button>
+    <button class="period-pill" onclick="setPeriod(this,'3m')">3 meses</button>
+    <button class="period-pill" onclick="setPeriod(this,'year')">Año</button>
+  </div>
+
+  <div class="rep-grid">
+    <div class="rep-card"><div class="rep-card-lbl">Ingresos</div><div class="rep-card-val g" id="r-inc">$0</div></div>
+    <div class="rep-card"><div class="rep-card-lbl">Gastos</div><div class="rep-card-val r" id="r-exp">$0</div></div>
+    <div class="rep-card"><div class="rep-card-lbl">Utilidad</div><div class="rep-card-val o" id="r-prof">$0</div></div>
+  </div>
+
+  <h3 style="font-family:'Syne',sans-serif;font-size:16px;margin-bottom:10px;">Ingresos por categoría</h3>
+  <div class="breakdown-card" id="inc-breakdown"></div>
+
+  <h3 style="font-family:'Syne',sans-serif;font-size:16px;margin:16px 0 10px;">Gastos por categoría</h3>
+  <div class="breakdown-card" id="exp-breakdown"></div>
+
+  <button class="pdf-btn" id="pdf-btn" onclick="generatePDF()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+    <span id="pdf-btn-text">Generar Reporte Bancable PDF</span>
+    <span class="pdf-badge">GRATIS</span>
+    <div class="pdf-loading" id="pdf-spinner"></div>
+  </button>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="navTo('screen-dashboard',0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</button>
+    <button class="nav-btn" onclick="goToAdd('income');navTo('screen-add',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Registrar</button>
+    <button class="nav-btn active" onclick="navTo('screen-reports',2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>Reportes</button>
+    <button class="nav-btn" onclick="navTo('screen-clients',3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes</button>
+  </nav>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: CLIENTS
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-clients">
+  <div class="client-header">
+    <div><div class="pg-title">Clientes</div><div class="pg-sub">Negocios que gestionas</div></div>
+    <button class="add-client-btn" onclick="openModal('modal-client')">+ Nuevo</button>
+  </div>
+
+  <div class="revenue-banner">
+    <div class="rev-label">Ingresos como consultor</div>
+    <div class="rev-amount" id="cli-revenue">$0/mes</div>
+    <div class="rev-sub" id="cli-count">0 clientes activos</div>
+    <div class="rev-row">
+      <div class="rev-pill"><div class="rev-pill-lbl">Proyección anual</div><div class="rev-pill-val" id="cli-annual">$0</div></div>
+      <div class="rev-pill"><div class="rev-pill-lbl">Meta 50 clientes</div><div class="rev-pill-val" id="cli-goal">$2,000/mes</div></div>
+    </div>
+  </div>
+
+  <div id="clients-list"></div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn" onclick="navTo('screen-dashboard',0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Inicio</button>
+    <button class="nav-btn" onclick="goToAdd('income');navTo('screen-add',1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Registrar</button>
+    <button class="nav-btn" onclick="navTo('screen-reports',2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>Reportes</button>
+    <button class="nav-btn active" onclick="navTo('screen-clients',3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes</button>
+  </nav>
+</div>
+
+<!-- ════════════════ JAVASCRIPT ════════════════ -->
+<script>
+// ── GLOBAL STATE ──
+const S = {
+  user: { phone: '', name: 'Usuario', initials: 'U' },
+  businesses: [
+    {
+      id: 1, name: 'Abarrotes La Esperanza', type: '🛒 Tienda', currency: '$',
+      transactions: [
+        { type:'income', cat:'venta', amount:850, note:'Venta lunes', date: daysAgo(1) },
+        { type:'income', cat:'venta', amount:1200, note:'Venta fin de semana', date: daysAgo(2) },
+        { type:'expense', cat:'compras', amount:450, note:'Mercancía', date: daysAgo(2) },
+        { type:'income', cat:'servicio', amount:300, note:'Servicio extra', date: daysAgo(3) },
+        { type:'expense', cat:'renta', amount:800, note:'Renta mensual', date: daysAgo(4) },
+        { type:'income', cat:'venta', amount:650, note:'Ventas jueves', date: daysAgo(5) },
+        { type:'expense', cat:'servicios', amount:120, note:'Luz y agua', date: daysAgo(6) },
+      ]
+    }
+  ],
+  clients: [],
+  currentBizId: 1,
+  selectedBizId: 1,
+  txType: 'income',
+  txCat: '',
+  amtStr: '0',
+  otp: '',
+  otpExpected: '1234',
+};
+
+function daysAgo(n) { const d=new Date(); d.setDate(d.getDate()-n); return d; }
+function getBiz() { return S.businesses.find(b=>b.id===S.currentBizId) || S.businesses[0]; }
+function fmt(n) { return Number(n).toLocaleString('es',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function cur() { return getBiz().currency || '$'; }
+function getGreeting() { const h=new Date().getHours(); return h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'; }
+
+// ── SCREEN NAV ──
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='screen-dashboard') renderDashboard();
+  if(id==='screen-reports') renderReports();
+  if(id==='screen-clients') renderClients();
+  if(id==='screen-switcher') renderSwitcher();
+}
+
+function navTo(id, navIdx) {
+  goTo(id);
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    b.classList.toggle('active', i===navIdx);
+  });
+}
+
+// ── WHATSAPP LOGIN ──
+function sendOTP() {
+  const phone = document.getElementById('phone-input').value.trim();
+  if (phone.length < 8) { showToast('Ingresa tu número de WhatsApp'); return; }
+  S.user.phone = phone;
+  S.user.name = 'Emprendedor';
+  S.user.initials = 'E';
+  S.otp = '';
+  document.getElementById('login-step-phone').style.display = 'none';
+  document.getElementById('login-step-otp').style.display = 'block';
+  showToast('✅ Código enviado: 1234 (demo)');
+  renderOTP();
+}
+
+function resendOTP() { showToast('📲 Código reenviado: 1234 (demo)'); }
+
+function otpPress(k) {
+  if (k === 'del') S.otp = S.otp.slice(0,-1);
+  else if (S.otp.length < 4) S.otp += k;
+  renderOTP();
+  if (S.otp.length === 4) {
+    setTimeout(()=>{
+      if (S.otp === S.otpExpected || S.otp.length === 4) {
+        showToast('✅ ¡Bienvenido a FlujoClaro!');
+        setTimeout(()=>goTo('screen-switcher'), 600);
+      } else {
+        showToast('❌ Código incorrecto');
+        S.otp = '';
+        renderOTP();
+      }
+    }, 300);
+  }
+}
+
+function renderOTP() {
+  for (let i=0;i<4;i++) {
+    const d = document.getElementById('d'+i);
+    d.textContent = S.otp[i] || '';
+    d.className = 'otp-dot' + (S.otp[i]?' filled':'') + (i===S.otp.length?' active':'');
+  }
+}
+
+// ── BUSINESS SWITCHER ──
+function renderSwitcher() {
+  document.getElementById('switcher-user-label').textContent = `${getGreeting()}, ${S.user.name}`;
+  const area = document.getElementById('biz-cards');
+  area.innerHTML = S.businesses.map(b=>`
+    <div class="biz-switch-card${b.id===S.selectedBizId?' selected':''}" onclick="selectBiz(${b.id})">
+      <div class="biz-switch-avatar" style="background:${b.id===1?'rgba(26,122,74,0.2)':'rgba(74,144,217,0.2)'};">${b.type.split(' ')[0]}</div>
+      <div class="biz-switch-info">
+        <div class="biz-switch-name">${b.name}</div>
+        <div class="biz-switch-type">${b.type} · ${b.currency}</div>
+      </div>
+      <div class="biz-switch-badge">${b.id===S.selectedBizId?'✓ Activo':'Seleccionar'}</div>
+    </div>
+  `).join('');
+}
+
+function selectBiz(id) {
+  S.selectedBizId = id;
+  renderSwitcher();
+}
+
+function enterSelectedBiz() {
+  S.currentBizId = S.selectedBizId;
+  goTo('screen-dashboard');
+}
+
+function addBusiness() {
+  const name = document.getElementById('m-bname').value.trim();
+  if (!name) { showToast('Escribe el nombre del negocio'); return; }
+  const newId = Date.now();
+  S.businesses.push({
+    id: newId,
+    name,
+    type: document.getElementById('m-btype').value,
+    currency: document.getElementById('m-bcurr').value,
+    transactions: []
+  });
+  S.selectedBizId = newId;
+  closeModal('modal-biz');
+  document.getElementById('m-bname').value='';
+  renderSwitcher();
+  showToast('✅ Negocio creado');
+}
+
+// ── DASHBOARD ──
+const INC_CATS = [
+  {id:'venta',icon:'🛍️',label:'Venta'},
+  {id:'servicio',icon:'🔧',label:'Servicio'},
+  {id:'delivery',icon:'🛵',label:'Delivery'},
+  {id:'otro',icon:'💵',label:'Otro'},
+];
+const EXP_CATS = [
+  {id:'compras',icon:'🏪',label:'Compras'},
+  {id:'renta',icon:'🏠',label:'Renta'},
+  {id:'sueldos',icon:'👷',label:'Sueldos'},
+  {id:'servicios',icon:'💡',label:'Servicios'},
+  {id:'transporte',icon:'🚗',label:'Transporte'},
+  {id:'marketing',icon:'📣',label:'Marketing'},
+  {id:'equipo',icon:'🖥️',label:'Equipo'},
+  {id:'otro_e',icon:'📦',label:'Otro'},
+];
+
+function renderDashboard() {
+  const biz = getBiz();
+  document.getElementById('h-biz-name').textContent = biz.name;
+  document.getElementById('h-avatar').textContent = S.user.initials;
+
+  const now = new Date();
+  const monthTx = biz.transactions.filter(t=>{
+    const d=new Date(t.date);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+
+  const inc = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const net = inc - exp;
+  const c = cur();
+
+  document.getElementById('b-net').innerHTML = `<span>${c}</span>${fmt(net)}`;
+  document.getElementById('b-inc').textContent = c+fmt(inc);
+  document.getElementById('b-exp').textContent = c+fmt(exp);
+
+  // Health ring
+  let score = inc>0 ? Math.min(99, Math.round((net/inc)*100+50)) : 50;
+  score = Math.max(5, score);
+  const circ = 2*Math.PI*22;
+  const offset = circ*(1-score/100);
+  document.getElementById('health-arc').style.strokeDashoffset = offset;
+  document.getElementById('h-score').textContent = score;
+  if(score>=70){document.getElementById('h-status').textContent='Negocio estable ✓';document.getElementById('h-hint').textContent='Gastos bajo control';}
+  else if(score>=50){document.getElementById('h-status').textContent='Atención necesaria ⚠️';document.getElementById('h-hint').textContent='Los gastos están creciendo';}
+  else{document.getElementById('h-status').textContent='Riesgo financiero 🔴';document.getElementById('h-hint').textContent='Gastos superan ingresos';}
+
+  // Week chart
+  renderWeekChart(biz.transactions);
+
+  // TX list
+  const txEl = document.getElementById('tx-list');
+  const recent = [...biz.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  if(!recent.length){txEl.innerHTML=`<div class="empty-state"><div class="ei">📭</div><p>Sin movimientos aún.<br>Registra tu primera venta ↑</p></div>`;return;}
+  txEl.innerHTML = recent.map(tx=>{
+    const cats = tx.type==='income'?INC_CATS:EXP_CATS;
+    const cat = cats.find(c=>c.id===tx.cat)||{icon:'💰',label:'General'};
+    const sign = tx.type==='income'?'+':'-';
+    const ds = new Date(tx.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+    return `<div class="tx-card"><div class="tx-ic ${tx.type==='income'?'inc':'exp'}">${cat.icon}</div><div style="flex:1"><div class="tx-name">${tx.note||cat.label}</div><div class="tx-date">${ds}</div></div><div class="tx-amt ${tx.type==='income'?'inc':'exp'}">${sign}${cur()}${fmt(tx.amount)}</div></div>`;
+  }).join('');
+}
+
+function renderWeekChart(txs) {
+  const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const now=new Date(); const data=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(now); d.setDate(now.getDate()-i);
+    const dtxs=txs.filter(t=>new Date(t.date).toDateString()===d.toDateString());
+    data.push({label:days[d.getDay()],inc:dtxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),exp:dtxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)});
+  }
+  const maxV=Math.max(...data.map(d=>Math.max(d.inc,d.exp)),1);
+  document.getElementById('week-chart').innerHTML=data.map(d=>{
+    const ih=Math.round((d.inc/maxV)*68);const eh=Math.round((d.exp/maxV)*68);
+    return `<div class="chart-bar-col"><div class="cb-inner"><div class="cb inc" style="height:${ih}px"></div><div class="cb exp" style="height:${eh}px"></div></div></div>`;
+  }).join('');
+  document.getElementById('week-labels').innerHTML=data.map(d=>`<div style="flex:1;text-align:center;font-size:9px;color:var(--muted)">${d.label}</div>`).join('');
+}
+
+// ── ADD TRANSACTION ──
+function goToAdd(type) {
+  S.txType=type; S.txCat=''; S.amtStr='0';
+  setTxType(type); goTo('screen-add');
+  document.getElementById('tx-note').value='';
+}
+
+function setTxType(type) {
+  S.txType=type;
+  document.getElementById('tab-inc').className='type-pill'+(type==='income'?' sel-inc':'');
+  document.getElementById('tab-exp').className='type-pill'+(type==='expense'?' sel-exp':'');
+  document.getElementById('amt-display').className='amount-val '+(type==='income'?'c-inc':'c-exp');
+  buildCats(); updateAmt();
+}
+
+function buildCats() {
+  const cats = S.txType==='income'?INC_CATS:EXP_CATS;
+  document.getElementById('cat-grid').innerHTML=cats.map(c=>
+    `<button class="cat-btn${S.txCat===c.id?' sel':''}" onclick="selCat('${c.id}')"><span>${c.icon}</span>${c.label}</button>`
+  ).join('');
+}
+
+function selCat(id){S.txCat=id;buildCats();}
+
+function numP(k){
+  if(k==='del')S.amtStr=S.amtStr.slice(0,-1)||'0';
+  else if(k==='.')S.amtStr.includes('.')||(S.amtStr+='.');
+  else{if(S.amtStr==='0')S.amtStr=k;else if(S.amtStr.length<10)S.amtStr+=k;}
+  updateAmt();
+}
+
+function updateAmt(){
+  document.getElementById('amt-display').textContent=cur()+fmt(parseFloat(S.amtStr)||0);
+}
+
+function saveTx(){
+  const amt=parseFloat(S.amtStr)||0;
+  if(amt<=0){showToast('Ingresa un monto válido');return;}
+  if(!S.txCat){showToast('Selecciona una categoría');return;}
+  getBiz().transactions.unshift({type:S.txType,cat:S.txCat,amount:amt,note:document.getElementById('tx-note').value.trim(),date:new Date()});
+  showToast(S.txType==='income'?'✅ Ingreso registrado':'✅ Gasto registrado');
+  setTimeout(()=>navTo('screen-dashboard',0),700);
+}
+
+// ── REPORTS ──
+function renderReports(){
+  const biz=getBiz();
+  const inc=biz.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=biz.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const prof=inc-exp;
+  const c=cur();
+  document.getElementById('r-inc').textContent=c+fmt(inc);
+  document.getElementById('r-exp').textContent=c+fmt(exp);
+  document.getElementById('r-prof').textContent=c+fmt(prof);
+
+  function buildBreakdown(elId, type) {
+    const el=document.getElementById(elId);
+    const cats=type==='income'?INC_CATS:EXP_CATS;
+    const bycat={};
+    biz.transactions.filter(t=>t.type===type).forEach(t=>{bycat[t.cat]=(bycat[t.cat]||0)+t.amount;});
+    const total=Object.values(bycat).reduce((s,v)=>s+v,0)||1;
+    const colors=['g','o','b','r','g','o'];
+    if(!Object.keys(bycat).length){el.innerHTML=`<div class="empty-state" style="padding:16px;"><p>Sin datos aún</p></div>`;return;}
+    el.innerHTML=Object.entries(bycat).sort((a,b)=>b[1]-a[1]).map(([cat,amt],i)=>{
+      const ci=cats.find(c=>c.id===cat)||{icon:'📦',label:cat};
+      const pct=Math.round((amt/total)*100);
+      return `<div class="bkd-item"><div class="bkd-row"><div class="bkd-name">${ci.icon} ${ci.label}</div><div class="bkd-val">${c}${fmt(amt)} · ${pct}%</div></div><div class="bar-track"><div class="bar-fill ${colors[i%colors.length]}" style="width:${pct}%"></div></div></div>`;
+    }).join('');
+  }
+  buildBreakdown('inc-breakdown','income');
+  buildBreakdown('exp-breakdown','expense');
+}
+
+function setPeriod(btn,p){
+  document.querySelectorAll('.period-pill').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  renderReports();
+}
+
+// ── REAL PDF GENERATION ──
+async function generatePDF() {
+  const btn = document.getElementById('pdf-btn');
+  const txt = document.getElementById('pdf-btn-text');
+  const spin = document.getElementById('pdf-spinner');
+  txt.textContent = 'Generando PDF...';
+  spin.style.display = 'block';
+  btn.style.opacity = '0.8';
+  btn.style.pointerEvents = 'none';
+
+  await new Promise(r=>setTimeout(r,800));
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const biz = getBiz();
+    const c = cur();
+    const now = new Date();
+    const inc = biz.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const exp = biz.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const prof = inc-exp;
+    const margin = 20;
+    let y = 20;
+
+    // Header stripe
+    doc.setFillColor(14,15,12);
+    doc.rect(0,0,210,45,'F');
+
+    // Logo text
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(28);
+    doc.text('FLUJO', margin, 22);
+    doc.setTextColor(39,174,96);
+    doc.text('CLARO', margin+36, 22);
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(180,180,180);
+    doc.text('REPORTE FINANCIERO BANCABLE', margin, 30);
+    doc.text('Documento generado para solicitud de crédito institucional', margin, 36);
+
+    // Report ID + date on right
+    doc.setTextColor(39,174,96);
+    doc.setFontSize(8);
+    const reportId = 'FC-'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+Math.floor(Math.random()*9000+1000);
+    doc.text('ID: '+reportId, 210-margin, 24, {align:'right'});
+    doc.setTextColor(180,180,180);
+    doc.text(now.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'}), 210-margin, 30, {align:'right'});
+
+    y = 55;
+
+    // Business info box
+    doc.setFillColor(244,242,236);
+    doc.roundedRect(margin, y, 170, 28, 3, 3, 'F');
+    doc.setTextColor(14,15,12);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.text(biz.name, margin+8, y+10);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Tipo: ${biz.type}    |    Moneda: ${c}    |    Propietario: ${S.user.name}`, margin+8, y+18);
+    doc.text(`Teléfono: ${S.user.phone||'No registrado'}    |    Generado el: ${now.toLocaleDateString('es-MX')}`, margin+8, y+24);
+    y += 36;
+
+    // Section: Resumen Financiero
+    doc.setFillColor(26,122,74);
+    doc.rect(margin, y, 170, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(10);
+    doc.text('RESUMEN FINANCIERO', margin+4, y+5.5);
+    y += 14;
+
+    const summaryData = [
+      ['Total Ingresos', c+' '+fmt(inc), [39,174,96]],
+      ['Total Gastos', c+' '+fmt(exp), [192,57,43]],
+      ['Utilidad Neta', c+' '+fmt(prof), prof>=0?[39,174,96]:[192,57,43]],
+      ['Margen de Utilidad', inc>0?Math.round((prof/inc)*100)+'%':'N/A', [14,15,12]],
+      ['Total Transacciones', biz.transactions.length+' movimientos', [14,15,12]],
+    ];
+
+    summaryData.forEach(([label, value, color], i) => {
+      const rowY = y + i*11;
+      if(i%2===0){doc.setFillColor(248,247,244);doc.rect(margin,rowY-3,170,11,'F');}
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(10);
+      doc.setTextColor(80,80,80);
+      doc.text(label, margin+4, rowY+4);
+      doc.setFont('helvetica','bold');
+      doc.setTextColor(...color);
+      doc.text(value, 210-margin-4, rowY+4, {align:'right'});
+    });
+    y += summaryData.length*11 + 10;
+
+    // Section: Movimientos Detallados
+    doc.setFillColor(26,122,74);
+    doc.rect(margin, y, 170, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(10);
+    doc.text('MOVIMIENTOS DETALLADOS', margin+4, y+5.5);
+    y += 14;
+
+    // Table headers
+    doc.setFillColor(230,244,238);
+    doc.rect(margin,y-3,170,9,'F');
+    doc.setTextColor(26,122,74);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('Fecha', margin+4, y+3);
+    doc.text('Descripción', margin+30, y+3);
+    doc.text('Tipo', margin+105, y+3);
+    doc.text('Monto', 210-margin-4, y+3, {align:'right'});
+    y += 10;
+
+    const sorted = [...biz.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20);
+    sorted.forEach((tx,i)=>{
+      if(y>270){doc.addPage();y=20;}
+      if(i%2===0){doc.setFillColor(249,248,245);doc.rect(margin,y-2,170,9,'F');}
+      const d=new Date(tx.date).toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      const cats=tx.type==='income'?INC_CATS:EXP_CATS;
+      const cat=cats.find(c=>c.id===tx.cat)||{label:'General'};
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8);
+      doc.setTextColor(80);
+      doc.text(d, margin+4, y+4);
+      doc.text((tx.note||cat.label).substring(0,38), margin+30, y+4);
+      doc.setTextColor(tx.type==='income'?[26,122,74]:[192,57,43]);
+      doc.text(tx.type==='income'?'Ingreso':'Gasto', margin+105, y+4);
+      doc.setFont('helvetica','bold');
+      doc.text((tx.type==='income'?'+':'-')+c+fmt(tx.amount), 210-margin-4, y+4, {align:'right'});
+      y+=9;
+    });
+
+    y += 12;
+    if(y>250){doc.addPage();y=20;}
+
+    // Health Score
+    doc.setFillColor(14,15,12);
+    doc.roundedRect(margin, y, 80, 32, 3, 3, 'F');
+    const score = inc>0?Math.min(99,Math.round((prof/inc)*100+50)):50;
+    doc.setTextColor(39,174,96);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(26);
+    doc.text(score+'', margin+10, y+20);
+    doc.setFontSize(8);
+    doc.setTextColor(180,180,180);
+    doc.text('/100', margin+28, y+20);
+    doc.text('ÍNDICE DE SALUD FINANCIERA', margin+4, y+27);
+
+    // Declaration
+    doc.setFillColor(230,244,238);
+    doc.roundedRect(margin+88, y, 82, 32, 3, 3, 'F');
+    doc.setTextColor(26,122,74);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.text('✓ DECLARACIÓN', margin+92, y+8);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(60);
+    doc.setFontSize(7);
+    doc.text('Los datos presentados en este', margin+92, y+14);
+    doc.text('reporte son verídicos y han sido', margin+92, y+19);
+    doc.text('registrados en tiempo real por', margin+92, y+24);
+    doc.text('el propietario del negocio.', margin+92, y+29);
+    y += 40;
+
+    // Footer
+    doc.setFillColor(14,15,12);
+    doc.rect(0,282,210,15,'F');
+    doc.setTextColor(100,100,100);
+    doc.setFontSize(7);
+    doc.text('FlujoClaro © '+now.getFullYear()+' · Reporte ID: '+reportId+' · Este documento fue generado automáticamente', 105, 289, {align:'center'});
+    doc.setTextColor(39,174,96);
+    doc.text('flujo-claro.app', 105, 293, {align:'center'});
+
+    // Save
+    doc.save(`FlujoClaro_Reporte_Bancable_${biz.name.replace(/\s/g,'_')}_${now.toLocaleDateString('es').replace(/\//g,'-')}.pdf`);
+    showToast('📄 Reporte PDF descargado correctamente');
+  } catch(e) {
+    console.error(e);
+    showToast('⚠️ Error generando PDF. Intenta de nuevo.');
+  }
+
+  txt.textContent='Generar Reporte Bancable PDF';
+  spin.style.display='none';
+  btn.style.opacity='1';
+  btn.style.pointerEvents='auto';
+}
+
+// ── CLIENTS ──
+function renderClients() {
+  const monthly = S.clients.reduce((s,c)=>s+(c.fee||40),0);
+  const c = cur();
+  document.getElementById('cli-revenue').textContent=c+fmt(monthly)+'/mes';
+  document.getElementById('cli-count').textContent=S.clients.length+' clientes activos';
+  document.getElementById('cli-annual').textContent=c+fmt(monthly*12);
+
+  const list=document.getElementById('clients-list');
+  if(!S.clients.length){list.innerHTML=`<div class="empty-state"><div class="ei">👥</div><p>Sin clientes aún.<br>Agrega tu primero arriba ↑</p></div>`;return;}
+  list.innerHTML=S.clients.map(cl=>{
+    const init=cl.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="client-card"><div class="client-av">${init}</div><div style="flex:1"><div class="client-name">${cl.name}</div><div class="client-type">${cl.type} · ${cl.phone||'Sin tel'}</div></div><div class="client-fee">${c}${cl.fee||40}/mes</div></div>`;
+  }).join('');
+}
+
+function saveClient(){
+  const name=document.getElementById('m-cname').value.trim();
+  if(!name){showToast('Escribe el nombre del negocio');return;}
+  S.clients.push({name,type:document.getElementById('m-ctype').value,phone:document.getElementById('m-cphone').value.trim(),fee:parseFloat(document.getElementById('m-cfee').value)||40});
+  document.getElementById('m-cname').value='';
+  document.getElementById('m-cphone').value='';
+  closeModal('modal-client');
+  renderClients();
+  showToast('✅ Cliente agregado');
+}
+
+// ── MODALS ──
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── INIT ──
+buildCats();
+</script>
+</body>
+</html>
